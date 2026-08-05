@@ -1,0 +1,1198 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSV Searchable Database Pro</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dbe3ee;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #b91c1c;
+      --header: #eef3f9;
+      --highlight: #fff3a3;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --row-height: 64px;
+      --thumb-size: 48px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .container {
+      width: min(1600px, 97vw);
+      margin: 24px auto;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .topbar {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.65rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 16px;
+      line-height: 1.45;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(300px, 2fr) auto auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input[type="file"],
+    input[type="search"],
+    select,
+    button {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+      padding: 9px 11px;
+      font-size: 0.95rem;
+    }
+
+    input:focus,
+    select:focus,
+    button:focus {
+      outline: 3px solid rgba(37, 99, 235, 0.16);
+      border-color: var(--primary);
+    }
+
+    button {
+      width: auto;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      font-weight: 700;
+      padding-inline: 15px;
+    }
+
+    button:hover { background: var(--primary-hover); }
+
+    button.secondary {
+      background: white;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    button.secondary:hover { background: #f8fafc; }
+
+    .status {
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      height: 68vh;
+      position: relative;
+    }
+
+    table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    th, td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: middle;
+      background: white;
+      width: 180px;
+      min-width: 90px;
+      max-width: 560px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    th {
+      background: var(--header);
+      position: relative;
+      height: 82px;
+      vertical-align: top;
+      cursor: grab;
+    }
+
+    th.dragging {
+      opacity: 0.45;
+      cursor: grabbing;
+    }
+
+    th.drop-before {
+      box-shadow: inset 4px 0 0 var(--primary);
+    }
+
+    th.drop-after {
+      box-shadow: inset -4px 0 0 var(--primary);
+    }
+
+    th input,
+    th button,
+    th .resize-handle {
+      cursor: default;
+    }
+
+    th:first-child,
+    td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 8;
+      box-shadow: 2px 0 0 rgba(219, 227, 238, 0.95);
+    }
+
+    th:first-child {
+      z-index: 30;
+      background: var(--header);
+    }
+
+    td:first-child {
+      background: white;
+    }
+
+    tbody tr:hover td,
+    tbody tr:hover td:first-child {
+      background: #f8fbff;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-weight: 700;
+      margin-bottom: 7px;
+      white-space: nowrap;
+    }
+
+    .sort-btn {
+      width: auto;
+      min-height: auto;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .sort-btn:hover {
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--primary);
+    }
+
+    .column-filter {
+      min-height: 34px !important;
+      font-size: 0.83rem !important;
+      font-weight: 400;
+      background: white;
+      width: 100%;
+    }
+
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      right: -3px;
+      width: 7px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 5;
+    }
+
+    tbody tr.data-row {
+      height: var(--row-height);
+    }
+
+    .cell-text {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    mark {
+      background: var(--highlight);
+      color: inherit;
+      padding: 0;
+    }
+
+    .image-cell {
+      overflow: visible;
+    }
+
+    .thumb-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 100%;
+    }
+
+    .thumb {
+      width: var(--thumb-size);
+      height: var(--thumb-size);
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: zoom-in;
+      background: #f8fafc;
+      flex: 0 0 auto;
+    }
+
+    .thumb:hover {
+      transform: scale(2.4);
+      transform-origin: left center;
+      z-index: 100;
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+
+    .image-link {
+      color: var(--primary);
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .image-link:hover { text-decoration: underline; }
+
+    .spacer-row td {
+      padding: 0;
+      border: 0;
+      height: 0;
+      background: transparent !important;
+    }
+
+    .empty {
+      padding: 50px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .footer {
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .lightbox.open { display: flex; }
+
+    .lightbox-content {
+      max-width: 95vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .lightbox img {
+      max-width: 95vw;
+      max-height: 82vh;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .lightbox a {
+      color: white;
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: 14px;
+      right: 18px;
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 2rem;
+      min-height: auto;
+      padding: 4px 10px;
+    }
+
+    @media (max-width: 900px) {
+      .controls {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .container {
+        width: 100%;
+        margin: 0;
+      }
+
+      .card { border-radius: 0; }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      button { width: 100%; }
+
+      .table-wrap { height: 70vh; }
+
+      th, td { width: 150px; }
+
+      .image-link { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <div class="topbar">
+        <h1>CSV Searchable Database Pro</h1>
+        <p class="subtitle">
+          Your CSV stays in this browser. Uploading a new file completely replaces the current dataset.
+          Shift-click column sort buttons to sort by multiple columns.
+        </p>
+
+        <div class="controls">
+          <div>
+            <label for="csvFile">CSV file</label>
+            <input id="csvFile" type="file" accept=".csv,text/csv" />
+          </div>
+
+          <div>
+            <label for="globalSearch">Search all columns</label>
+            <input id="globalSearch" type="search" placeholder="Type any partial word or phrase..." disabled />
+          </div>
+
+          <div>
+            <button id="exportCsv" type="button" disabled>Export filtered CSV</button>
+          </div>
+
+          <div>
+            <button id="clearFilters" class="secondary" type="button" disabled>Clear searches</button>
+          </div>
+        </div>
+      </div>
+<div>
+  <label for="collxUrl">CollX shared collection</label>
+  <input
+    id="collxUrl"
+    type="url"
+    placeholder="https://share.collx.app/cardshark07"
+  />
+</div>
+
+<button id="importCollx" type="button">
+  Import CollX Collection
+</button>
+      <div class="status">
+        <span id="recordStatus">No CSV loaded.</span>
+        <span id="fileStatus"></span>
+      </div>
+
+      <div id="tableWrap" class="table-wrap">
+        <div id="emptyState" class="empty">Choose a CSV file to begin.</div>
+        <table id="dataTable" hidden>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="footer" class="footer" hidden>
+        <span class="footer-note">
+          Header and first column stay visible. Drag headers to reorder columns; drag header edges to resize.
+        </span>
+        <span id="sortStatus" class="footer-note">No sorting applied.</span>
+      </div>
+    </section>
+  </main>
+
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <button id="lightboxClose" class="lightbox-close" aria-label="Close image preview">×</button>
+    <div class="lightbox-content">
+      <img id="lightboxImage" alt="Image preview" />
+      <a id="lightboxLink" target="_blank" rel="noopener noreferrer">Open original image</a>
+    </div>
+  </div>
+
+  <script>
+    const ROW_HEIGHT = 64;
+    const OVERSCAN = 12;
+    const SESSION_KEY = "csvDatabaseProState";
+
+    const state = {
+      headers: [],
+      rows: [],
+      filteredRows: [],
+      columnFilters: [],
+      globalSearch: "",
+      sorts: [],
+      columnWidths: [],
+      fileName: "",
+      renderStart: -1,
+      renderEnd: -1,
+      draggedColumn: null,
+      dropColumn: null,
+      dropAfter: false
+    };
+
+    const elements = {
+      file: document.getElementById("csvFile"),
+      globalSearch: document.getElementById("globalSearch"),
+      clearFilters: document.getElementById("clearFilters"),
+      exportCsv: document.getElementById("exportCsv"),
+      recordStatus: document.getElementById("recordStatus"),
+      fileStatus: document.getElementById("fileStatus"),
+      emptyState: document.getElementById("emptyState"),
+      tableWrap: document.getElementById("tableWrap"),
+      table: document.getElementById("dataTable"),
+      head: document.getElementById("tableHead"),
+      body: document.getElementById("tableBody"),
+      footer: document.getElementById("footer"),
+      sortStatus: document.getElementById("sortStatus"),
+      lightbox: document.getElementById("lightbox"),
+      lightboxImage: document.getElementById("lightboxImage"),
+      lightboxLink: document.getElementById("lightboxLink"),
+      lightboxClose: document.getElementById("lightboxClose")
+    };
+
+    function parseCSV(text) {
+      text = text.replace(/^\uFEFF/, "");
+      const rows = [];
+      let row = [];
+      let field = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (inQuotes) {
+          if (char === '"' && next === '"') {
+            field += '"';
+            i++;
+          } else if (char === '"') {
+            inQuotes = false;
+          } else {
+            field += char;
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true;
+          } else if (char === ",") {
+            row.push(field);
+            field = "";
+          } else if (char === "\n") {
+            row.push(field.replace(/\r$/, ""));
+            rows.push(row);
+            row = [];
+            field = "";
+          } else {
+            field += char;
+          }
+        }
+      }
+
+      if (field.length > 0 || row.length > 0) {
+        row.push(field.replace(/\r$/, ""));
+        rows.push(row);
+      }
+
+      return rows.filter(r => r.some(cell => String(cell).trim() !== ""));
+    }
+
+    function normalizeRows(parsed) {
+      if (!parsed.length) throw new Error("The CSV file is empty.");
+
+      let headers = parsed[0].map((header, index) => {
+        const cleaned = String(header).trim();
+        return cleaned || `Column ${index + 1}`;
+      });
+
+      const seen = new Map();
+      headers = headers.map(header => {
+        const count = (seen.get(header) || 0) + 1;
+        seen.set(header, count);
+        return count === 1 ? header : `${header} (${count})`;
+      });
+
+      const count = headers.length;
+      const rows = parsed.slice(1).map(row => {
+        const result = new Array(count).fill("");
+        for (let i = 0; i < count; i++) result[i] = row[i] ?? "";
+        return result;
+      });
+
+      return { headers, rows };
+    }
+
+    function resetDataset(headers, rows, fileName) {
+      state.headers = headers;
+      state.rows = rows;
+      state.filteredRows = rows.slice();
+      state.columnFilters = new Array(headers.length).fill("");
+      state.globalSearch = "";
+      state.sorts = [];
+      state.columnWidths = new Array(headers.length).fill(180);
+      state.fileName = fileName;
+      state.renderStart = -1;
+      state.renderEnd = -1;
+
+      elements.globalSearch.value = "";
+      elements.globalSearch.disabled = false;
+      elements.clearFilters.disabled = false;
+      elements.exportCsv.disabled = false;
+      elements.table.hidden = false;
+      elements.footer.hidden = false;
+      elements.emptyState.hidden = true;
+      elements.fileStatus.textContent = fileName;
+      elements.tableWrap.scrollTop = 0;
+
+      restoreSessionState();
+      buildHeader();
+      applyFilters();
+    }
+
+    function buildHeader() {
+      elements.head.innerHTML = "";
+      const row = document.createElement("tr");
+
+      state.headers.forEach((header, index) => {
+        const th = document.createElement("th");
+        th.style.width = `${state.columnWidths[index]}px`;
+        th.draggable = true;
+        th.dataset.column = index;
+        th.addEventListener("dragstart", event => beginColumnDrag(event, index, th));
+        th.addEventListener("dragover", event => updateColumnDropTarget(event, index, th));
+        th.addEventListener("dragleave", () => clearDropMarker(th));
+        th.addEventListener("drop", event => finishColumnDrop(event, index));
+        th.addEventListener("dragend", endColumnDrag);
+
+        const title = document.createElement("div");
+        title.className = "header-title";
+
+        const titleText = document.createElement("span");
+        titleText.textContent = header;
+        titleText.title = header;
+
+        const sortButton = document.createElement("button");
+        sortButton.type = "button";
+        sortButton.className = "sort-btn";
+        sortButton.dataset.column = index;
+        sortButton.title = `Sort by ${header}. Shift-click to add to multi-column sort.`;
+        sortButton.addEventListener("click", event => sortByColumn(index, event.shiftKey));
+
+        const filter = document.createElement("input");
+        filter.type = "search";
+        filter.className = "column-filter";
+        filter.placeholder = "Filter this column";
+        filter.value = state.columnFilters[index] || "";
+        filter.addEventListener("input", debounce(event => {
+          state.columnFilters[index] = event.target.value;
+          saveSessionState();
+          applyFilters();
+        }, 120));
+
+        const resize = document.createElement("div");
+        resize.className = "resize-handle";
+        resize.draggable = false;
+        resize.addEventListener("mousedown", event => beginResize(event, index, th));
+
+        title.append(titleText, sortButton);
+        th.append(title, filter, resize);
+        row.appendChild(th);
+      });
+
+      elements.head.appendChild(row);
+      updateSortIndicators();
+    }
+
+    function beginColumnDrag(event, index, th) {
+      if (event.target.closest("input, button, .resize-handle")) {
+        event.preventDefault();
+        return;
+      }
+
+      state.draggedColumn = index;
+      th.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", String(index));
+    }
+
+    function updateColumnDropTarget(event, index, th) {
+      if (state.draggedColumn === null || state.draggedColumn === index) return;
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+
+      document.querySelectorAll("th.drop-before, th.drop-after").forEach(cell => {
+        if (cell !== th) {
+          cell.classList.remove("drop-before", "drop-after");
+        }
+      });
+
+      const rect = th.getBoundingClientRect();
+      const after = event.clientX > rect.left + rect.width / 2;
+      state.dropColumn = index;
+      state.dropAfter = after;
+
+      th.classList.toggle("drop-before", !after);
+      th.classList.toggle("drop-after", after);
+    }
+
+    function clearDropMarker(th) {
+      th.classList.remove("drop-before", "drop-after");
+    }
+
+    function finishColumnDrop(event, targetIndex) {
+      event.preventDefault();
+
+      const fromIndex = state.draggedColumn;
+      if (fromIndex === null) return;
+
+      let insertionIndex = targetIndex + (state.dropAfter ? 1 : 0);
+      if (fromIndex < insertionIndex) insertionIndex--;
+
+      if (insertionIndex !== fromIndex) {
+        reorderColumns(fromIndex, insertionIndex);
+      }
+
+      endColumnDrag();
+    }
+
+    function endColumnDrag() {
+      document.querySelectorAll("th").forEach(th => {
+        th.classList.remove("dragging", "drop-before", "drop-after");
+      });
+      state.draggedColumn = null;
+      state.dropColumn = null;
+      state.dropAfter = false;
+    }
+
+    function reorderColumns(fromIndex, toIndex) {
+      moveArrayItem(state.headers, fromIndex, toIndex);
+      moveArrayItem(state.columnFilters, fromIndex, toIndex);
+      moveArrayItem(state.columnWidths, fromIndex, toIndex);
+
+      state.rows.forEach(row => moveArrayItem(row, fromIndex, toIndex));
+
+      state.sorts = state.sorts.map(sort => ({
+        ...sort,
+        column: remapColumnIndex(sort.column, fromIndex, toIndex)
+      }));
+
+      saveSessionState();
+      buildHeader();
+      applyFilters();
+    }
+
+    function remapColumnIndex(index, fromIndex, toIndex) {
+      if (index === fromIndex) return toIndex;
+
+      if (fromIndex < toIndex && index > fromIndex && index <= toIndex) {
+        return index - 1;
+      }
+
+      if (fromIndex > toIndex && index >= toIndex && index < fromIndex) {
+        return index + 1;
+      }
+
+      return index;
+    }
+
+    function moveArrayItem(array, fromIndex, toIndex) {
+      const [item] = array.splice(fromIndex, 1);
+      array.splice(toIndex, 0, item);
+    }
+
+    function beginResize(event, index, th) {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = th.getBoundingClientRect().width;
+
+      function move(e) {
+        const next = Math.max(90, Math.min(560, startWidth + (e.clientX - startX)));
+        state.columnWidths[index] = Math.round(next);
+        applyColumnWidths();
+      }
+
+      function up() {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+        saveSessionState();
+      }
+
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    }
+
+    function applyColumnWidths() {
+      const headerCells = elements.head.querySelectorAll("th");
+      headerCells.forEach((th, index) => th.style.width = `${state.columnWidths[index]}px`);
+      elements.body.querySelectorAll("tr.data-row").forEach(tr => {
+        [...tr.children].forEach((td, index) => td.style.width = `${state.columnWidths[index]}px`);
+      });
+    }
+
+    function applyFilters() {
+      const globalTerm = state.globalSearch.toLowerCase();
+
+      state.filteredRows = state.rows.filter(row => {
+        if (globalTerm && !row.some(cell => String(cell).toLowerCase().includes(globalTerm))) {
+          return false;
+        }
+
+        for (let i = 0; i < state.columnFilters.length; i++) {
+          const term = String(state.columnFilters[i] || "").toLowerCase();
+          if (term && !String(row[i] ?? "").toLowerCase().includes(term)) return false;
+        }
+        return true;
+      });
+
+      sortRows();
+      state.renderStart = -1;
+      state.renderEnd = -1;
+      renderVirtualRows(true);
+      updateStatus();
+    }
+
+    function sortByColumn(index, additive) {
+      const existingIndex = state.sorts.findIndex(s => s.column === index);
+
+      if (!additive) {
+        if (existingIndex === 0 && state.sorts.length === 1) {
+          state.sorts[0].direction *= -1;
+        } else {
+          state.sorts = [{ column: index, direction: 1 }];
+        }
+      } else {
+        if (existingIndex >= 0) {
+          state.sorts[existingIndex].direction *= -1;
+        } else {
+          state.sorts.push({ column: index, direction: 1 });
+        }
+      }
+
+      saveSessionState();
+      updateSortIndicators();
+      sortRows();
+      state.renderStart = -1;
+      renderVirtualRows(true);
+      updateStatus();
+    }
+
+    function sortRows() {
+      if (!state.sorts.length) return;
+
+      state.filteredRows.sort((a, b) => {
+        for (const rule of state.sorts) {
+          const result = compareValues(a[rule.column], b[rule.column]);
+          if (result !== 0) return result * rule.direction;
+        }
+        return 0;
+      });
+    }
+
+    function compareValues(a, b) {
+      const av = String(a ?? "").trim();
+      const bv = String(b ?? "").trim();
+      const an = Number(av.replace(/[$,%]/g, ""));
+      const bn = Number(bv.replace(/[$,%]/g, ""));
+      const numeric = av !== "" && bv !== "" && Number.isFinite(an) && Number.isFinite(bn);
+      if (numeric) return an - bn;
+      return av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
+    }
+
+    function updateSortIndicators() {
+      const buttons = elements.head.querySelectorAll(".sort-btn");
+      buttons.forEach(btn => btn.textContent = "↕");
+
+      state.sorts.forEach((sort, position) => {
+        const btn = elements.head.querySelector(`.sort-btn[data-column="${sort.column}"]`);
+        if (btn) btn.textContent = `${sort.direction === 1 ? "↑" : "↓"}${position + 1}`;
+      });
+
+      if (!state.sorts.length) {
+        elements.sortStatus.textContent = "No sorting applied.";
+      } else {
+        elements.sortStatus.textContent = "Sorted by " + state.sorts.map((sort, i) =>
+          `${i + 1}. ${state.headers[sort.column]} ${sort.direction === 1 ? "ascending" : "descending"}`
+        ).join(", ");
+      }
+    }
+
+    function renderVirtualRows(force = false) {
+      const total = state.filteredRows.length;
+      const viewportHeight = elements.tableWrap.clientHeight || 600;
+      const scrollTop = elements.tableWrap.scrollTop;
+      const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT);
+      const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+      const end = Math.min(total, start + visibleCount + OVERSCAN * 2);
+
+      if (!force && start === state.renderStart && end === state.renderEnd) return;
+
+      state.renderStart = start;
+      state.renderEnd = end;
+      elements.body.innerHTML = "";
+
+      if (total === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = Math.max(1, state.headers.length);
+        td.className = "empty";
+        td.textContent = "No matching records found.";
+        tr.appendChild(td);
+        elements.body.appendChild(tr);
+        return;
+      }
+
+      const topSpacer = makeSpacer(start * ROW_HEIGHT);
+      const bottomSpacer = makeSpacer((total - end) * ROW_HEIGHT);
+      elements.body.appendChild(topSpacer);
+
+      const fragment = document.createDocumentFragment();
+      for (let i = start; i < end; i++) {
+        fragment.appendChild(makeDataRow(state.filteredRows[i]));
+      }
+      elements.body.appendChild(fragment);
+      elements.body.appendChild(bottomSpacer);
+    }
+
+    function makeSpacer(height) {
+      const tr = document.createElement("tr");
+      tr.className = "spacer-row";
+      const td = document.createElement("td");
+      td.colSpan = Math.max(1, state.headers.length);
+      td.style.height = `${height}px`;
+      tr.appendChild(td);
+      return tr;
+    }
+
+    function makeDataRow(row) {
+      const tr = document.createElement("tr");
+      tr.className = "data-row";
+
+      row.forEach((cell, index) => {
+        const td = document.createElement("td");
+        td.style.width = `${state.columnWidths[index]}px`;
+        const value = String(cell ?? "");
+
+        if (isImageValue(value, state.headers[index])) {
+          td.className = "image-cell";
+          td.appendChild(makeImagePreview(value));
+        } else {
+          const span = document.createElement("span");
+          span.className = "cell-text";
+          span.title = value;
+          appendHighlightedText(span, value, getHighlightTerms(index));
+          td.appendChild(span);
+        }
+
+        tr.appendChild(td);
+      });
+
+      return tr;
+    }
+
+    function isImageValue(value, header) {
+      const v = value.trim();
+      if (!/^https?:\/\//i.test(v)) return false;
+
+      const directImage = /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i.test(v);
+      const imageHost = /(i\.imgur\.com|images\.unsplash\.com|cloudinary\.com|ibb\.co|postimg\.cc)/i.test(v);
+      const imageHeader = /(image|photo|picture|thumbnail|img|artwork|cover)/i.test(header);
+
+      return directImage || imageHost || imageHeader;
+    }
+
+    function makeImagePreview(url) {
+      const wrap = document.createElement("div");
+      wrap.className = "thumb-wrap";
+
+      const img = document.createElement("img");
+      img.className = "thumb";
+      img.src = url;
+      img.alt = "Image preview";
+      img.loading = "lazy";
+      img.referrerPolicy = "no-referrer";
+      img.addEventListener("click", () => openLightbox(url));
+      img.addEventListener("error", () => {
+        img.style.display = "none";
+      });
+
+      const link = document.createElement("a");
+      link.className = "image-link";
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = url;
+      link.title = url;
+
+      wrap.append(img, link);
+      return wrap;
+    }
+
+    function openLightbox(url) {
+      elements.lightboxImage.src = url;
+      elements.lightboxLink.href = url;
+      elements.lightbox.classList.add("open");
+      elements.lightbox.setAttribute("aria-hidden", "false");
+    }
+
+    function closeLightbox() {
+      elements.lightbox.classList.remove("open");
+      elements.lightbox.setAttribute("aria-hidden", "true");
+      elements.lightboxImage.src = "";
+    }
+
+    function getHighlightTerms(columnIndex) {
+      const terms = [];
+      if (state.globalSearch.trim()) terms.push(state.globalSearch.trim());
+      if (state.columnFilters[columnIndex]?.trim()) terms.push(state.columnFilters[columnIndex].trim());
+      return [...new Set(terms)].sort((a, b) => b.length - a.length);
+    }
+
+    function appendHighlightedText(container, text, terms) {
+      if (!terms.length || !text) {
+        container.textContent = text;
+        return;
+      }
+
+      const escaped = terms.map(escapeRegExp).filter(Boolean);
+      if (!escaped.length) {
+        container.textContent = text;
+        return;
+      }
+
+      const regex = new RegExp(`(${escaped.join("|")})`, "gi");
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          container.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        }
+        const mark = document.createElement("mark");
+        mark.textContent = match[0];
+        container.appendChild(mark);
+        lastIndex = regex.lastIndex;
+      }
+
+      if (lastIndex < text.length) {
+        container.appendChild(document.createTextNode(text.slice(lastIndex)));
+      }
+    }
+
+    function escapeRegExp(value) {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function updateStatus() {
+      const total = state.rows.length;
+      const filtered = state.filteredRows.length;
+      elements.recordStatus.textContent =
+        filtered === total
+          ? `${total.toLocaleString()} record${total === 1 ? "" : "s"} loaded`
+          : `${filtered.toLocaleString()} of ${total.toLocaleString()} records shown`;
+      updateSortIndicators();
+    }
+
+    function clearSearches() {
+      state.globalSearch = "";
+      state.columnFilters.fill("");
+      elements.globalSearch.value = "";
+      document.querySelectorAll(".column-filter").forEach(input => input.value = "");
+      saveSessionState();
+      elements.tableWrap.scrollTop = 0;
+      applyFilters();
+    }
+
+    function exportFilteredCsv() {
+      const rows = [state.headers, ...state.filteredRows];
+      const csv = rows.map(row => row.map(csvEscape).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const base = state.fileName.replace(/\.csv$/i, "") || "filtered-data";
+      a.href = url;
+      a.download = `${base}-filtered.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function saveSessionState() {
+      if (!state.fileName) return;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        fileName: state.fileName,
+        globalSearch: state.globalSearch,
+        columnFilters: state.columnFilters,
+        sorts: state.sorts,
+        columnWidths: state.columnWidths,
+        headerOrder: state.headers
+      }));
+    }
+
+    function restoreSessionState() {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+        if (!saved || saved.fileName !== state.fileName) return;
+
+        if (
+          Array.isArray(saved.headerOrder) &&
+          saved.headerOrder.length === state.headers.length &&
+          saved.headerOrder.every(header => state.headers.includes(header))
+        ) {
+          const oldHeaders = state.headers.slice();
+          const order = saved.headerOrder.map(header => oldHeaders.indexOf(header));
+
+          state.headers = order.map(index => oldHeaders[index]);
+          state.rows = state.rows.map(row => order.map(index => row[index]));
+          state.filteredRows = state.rows.slice();
+        }
+
+        if (Array.isArray(saved.columnFilters) && saved.columnFilters.length === state.headers.length) {
+          state.columnFilters = saved.columnFilters;
+        }
+        if (Array.isArray(saved.sorts)) state.sorts = saved.sorts;
+        if (Array.isArray(saved.columnWidths) && saved.columnWidths.length === state.headers.length) {
+          state.columnWidths = saved.columnWidths;
+        }
+        state.globalSearch = saved.globalSearch || "";
+        elements.globalSearch.value = state.globalSearch;
+      } catch (_) {}
+    }
+
+    function debounce(fn, wait) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn(...args), wait);
+      };
+    }
+
+    elements.file.addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      elements.recordStatus.textContent = "Loading CSV...";
+      elements.recordStatus.classList.remove("error");
+
+      try {
+        const text = await file.text();
+        const parsed = parseCSV(text);
+        const { headers, rows } = normalizeRows(parsed);
+        resetDataset(headers, rows, file.name);
+      } catch (error) {
+        elements.recordStatus.textContent = `Could not load CSV: ${error.message}`;
+        elements.recordStatus.classList.add("error");
+      }
+    });
+
+    elements.globalSearch.addEventListener("input", debounce(event => {
+      state.globalSearch = event.target.value;
+      saveSessionState();
+      elements.tableWrap.scrollTop = 0;
+      applyFilters();
+    }, 120));
+
+    elements.clearFilters.addEventListener("click", clearSearches);
+    elements.exportCsv.addEventListener("click", exportFilteredCsv);
+
+    elements.tableWrap.addEventListener("scroll", () => {
+      requestAnimationFrame(() => renderVirtualRows(false));
+    });
+
+    elements.lightboxClose.addEventListener("click", closeLightbox);
+    elements.lightbox.addEventListener("click", event => {
+      if (event.target === elements.lightbox) closeLightbox();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeLightbox();
+    });
+  </script>
+</body>
+</html>
